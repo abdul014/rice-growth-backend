@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    environment:
+      - MODEL_HF_REPO_ID=eranusadata/rice-growth-hybrid-fusion-model
+      - FRONTEND_ORIGINS=${FRONTEND_ORIGINS}
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:
