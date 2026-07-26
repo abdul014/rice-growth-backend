@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: rice-growth-backend
+    runtime: docker
+    plan: free
+    envVars:
+      - key: MODEL_HF_REPO_ID
+        value: eranusadata/rice-growth-hybrid-fusion-model
+      - key: FRONTEND_ORIGINS
+        sync: false
