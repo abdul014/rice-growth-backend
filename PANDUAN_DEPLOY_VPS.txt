@@ -1,0 +1,122 @@
+================================================================================
+PANDUAN DEPLOY BACKEND KE VPS SENDIRI (Ubuntu/Debian)
+================================================================================
+
+Jalankan perintah-perintah ini lewat SSH ke VPS Anda, satu per satu.
+
+
+--------------------------------------------------------------------------------
+LANGKAH 1 — SSH ke VPS
+--------------------------------------------------------------------------------
+    ssh nama-user-anda@ip-vps-anda
+
+
+--------------------------------------------------------------------------------
+LANGKAH 2 — Install Docker & Git
+--------------------------------------------------------------------------------
+    curl -fsSL https://get.docker.com | sudo sh
+    sudo apt update && sudo apt install -y git
+    sudo usermod -aG docker $USER
+    newgrp docker
+
+(perintah terakhir supaya tidak perlu "sudo" tiap jalankan docker)
+
+
+--------------------------------------------------------------------------------
+LANGKAH 3 — Cari tahu IP publik VPS ini
+--------------------------------------------------------------------------------
+    curl -4 ifconfig.me
+
+Catat angka IP yang muncul, contoh: 203.0.113.42
+
+
+--------------------------------------------------------------------------------
+LANGKAH 4 — Clone repo backend
+--------------------------------------------------------------------------------
+    git clone https://github.com/abdul014/rice-growth-backend.git
+    cd rice-growth-backend
+
+
+--------------------------------------------------------------------------------
+LANGKAH 5 — Edit Caddyfile (ganti dengan IP Anda dari Langkah 3)
+--------------------------------------------------------------------------------
+    nano Caddyfile
+
+Ganti baris pertama dari:
+    GANTI_DENGAN_IP_VPS_ANDA.sslip.io {
+menjadi (pakai IP Anda sendiri, TETAP pakai titik seperti IP asli):
+    203.0.113.42.sslip.io {
+
+("sslip.io" adalah layanan DNS gratis tanpa perlu daftar — domain apa pun yang
+mengandung IP Anda otomatis mengarah ke IP itu. Ini dipakai supaya Caddy bisa
+membuatkan sertifikat HTTPS asli secara otomatis, tanpa Anda perlu punya domain
+sendiri.)
+
+Simpan: Ctrl+O, Enter, lalu Ctrl+X untuk keluar dari nano.
+
+
+--------------------------------------------------------------------------------
+LANGKAH 6 — Buat file .env (isi URL Netlify Anda)
+--------------------------------------------------------------------------------
+    cp .env.example .env
+    nano .env
+
+Ganti isinya dengan URL Netlify Anda yang sebenarnya, contoh:
+    FRONTEND_ORIGINS=https://nama-site-anda.netlify.app
+
+Simpan: Ctrl+O, Enter, Ctrl+X.
+
+
+--------------------------------------------------------------------------------
+LANGKAH 7 — Buka firewall untuk port 80 & 443 (jika UFW aktif)
+--------------------------------------------------------------------------------
+    sudo ufw allow 80/tcp
+    sudo ufw allow 443/tcp
+
+(Jika VPS Anda dari provider cloud seperti DigitalOcean/AWS/dll., pastikan juga
+"Security Group" / firewall dashboard provider mengizinkan port 80 dan 443
+masuk dari internet.)
+
+
+--------------------------------------------------------------------------------
+LANGKAH 8 — Jalankan!
+--------------------------------------------------------------------------------
+    docker compose up -d --build
+
+Build pertama akan memakan waktu 5-15 menit (instalasi TensorFlow). Pantau
+proses & tunggu sampai model selesai diunduh dari Hugging Face:
+
+    docker compose logs -f backend
+
+Tunggu sampai muncul baris seperti "Uvicorn running on http://0.0.0.0:8000"
+lalu tekan Ctrl+C untuk keluar dari log (servicenya tetap jalan di background).
+
+
+--------------------------------------------------------------------------------
+LANGKAH 9 — Tes
+--------------------------------------------------------------------------------
+Buka di browser (ganti dengan IP Anda sendiri):
+
+    https://203.0.113.42.sslip.io/docs
+
+Kalau muncul halaman Swagger UI FastAPI dengan gembok HTTPS valid di address
+bar, backend sudah berjalan dengan benar dan siap dipakai frontend Netlify.
+
+
+--------------------------------------------------------------------------------
+CATATAN
+--------------------------------------------------------------------------------
+- URL backend Anda adalah: https://<IP-VPS-ANDA>.sslip.io
+  (contoh: https://203.0.113.42.sslip.io)
+  Ini yang perlu dikasih ke Claude untuk update frontend/.env, build ulang, dan
+  siapkan folder Netlify baru.
+
+- Untuk update kode di kemudian hari:
+      cd rice-growth-backend
+      git pull
+      docker compose up -d --build
+
+- Untuk melihat status / menghentikan:
+      docker compose ps
+      docker compose down
+================================================================================
